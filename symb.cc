@@ -22,7 +22,7 @@ namespace symb {
   boost::circular_buffer<double> stack(stack_capacity);
 
   // Available operator implementations,
-  // and currently should be hard-coded.
+  // and currently can only be specified in this file.
   namespace operators {
     template<typename F>
     void ApplyUnary(const F& f)
@@ -74,9 +74,9 @@ namespace symb {
   std::uniform_int_distribution<int> uniform;
 
   // random expression generation pools
-  std::array pool_nullary = {'1', 'x', 'P'};
-  std::array pool_unary = {'\\', '~', '>', '<', 'C', 'S', '2', 'R', 'L', 'H'};
-  std::array pool_binary = {'+', '-', '/', '*'};
+  std::array nullary_pool = {'1', 'x', 'P'};
+  std::array unary_pool = {'\\', '~', '>', '<', 'C', 'S', '2', 'R', 'L', 'H'};
+  std::array binary_pool = {'+', '-', '/', '*'};
 
   // returns a random member of an array
   template<typename T>
@@ -104,21 +104,21 @@ namespace symb {
 
       switch (choice) {
         case 0:
-          result += RandDraw(pool_nullary);
+          result += RandDraw(nullary_pool);
           stack_size++;
           break;
         case 1:
-          result += RandDraw(pool_unary);
+          result += RandDraw(unary_pool);
           break;
         case 2:
-          result += RandDraw(pool_binary);
+          result += RandDraw(binary_pool);
           stack_size--;
           break;
       }
     }
 
     while (stack_size > 1) {
-      result += RandDraw(pool_binary);
+      result += RandDraw(binary_pool);
       stack_size--;
     }
 
