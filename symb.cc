@@ -89,7 +89,11 @@ namespace symb {
   {
     std::string result;
 
-    int stack_size = 0;
+    int stack_size = 0; // Used to ensure that the generated expression,
+                        // after getting fully executed, leaves a stack
+                        // with size 1, i.e., a stack containing only
+                        // the return value.
+
     for (int i = 0; i < len; ++i) {
       int roof = stack_size>=2 ? 3 : stack_size+1;
       int choice = uniform(rng) % roof;
