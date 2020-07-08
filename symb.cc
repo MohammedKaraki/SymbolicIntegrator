@@ -1,206 +1,203 @@
-#include <cstdio>
+#include "symb.h"
 #include <array>
 #include <vector>
-#include <cmath>
+#include <string>
 #include <map>
+#include <cmath>
 #include <random>
 #include <boost/circular_buffer.hpp>
 
-constexpr double pi = 3.141592653589793;
 
-constexpr int max_num_params = 3;
-constexpr int max_num_vars= 3;
-std::array<double, max_num_params> params;
-std::array<double, max_num_vars> vars;
+namespace symb {
+  constexpr double pi = 3.141592653589793;
 
-constexpr int stack_capacity = 50;
-boost::circular_buffer<double> stack(stack_capacity);
+  // Currently, params and vars should be hard-coded.
+  constexpr int max_num_params = 3; // params are a, b, c.
+  constexpr int max_num_vars= 3; // vars are x, y, z.
+  std::array<double, max_num_params> params;
+  std::array<double, max_num_vars> vars;
 
+  // the stack stores the operands.
+  constexpr int stack_capacity = 50; 
+  boost::circular_buffer<double> stack(stack_capacity);
 
-typedef void(*FuncPtr)();
-
-// available operator implementations
-namespace ops {
-  template<typename F>
-  void unary(const F& f)
-  {
-    f(stack.back());
-  }
-
-  template<typename F>
-  void binary(const F& f)
-  {
-    double back = stack.back();
-    stack.pop_back();
-    f(stack.back(), back);
-  }
-
-  // nullary operators
-  void a() { stack.push_back(params[0]); }
-  void b() { stack.push_back(params[1]); }
-  void c() { stack.push_back(params[2]); }
-  void x() { stack.push_back(vars[0]); }
-  void y() { stack.push_back(vars[1]); }
-  void z() { stack.push_back(vars[2]); }
-  void zero() { stack.push_back(0.0); }
-  void one() { stack.push_back(1.0); }
-  void pi() { stack.push_back(::pi); }
-
-  // unary operators
-  void invert() { unary([](double& a) { a = 1.0 / a; }); }
-  void invert_sign() { unary([](double& a) { a *= -1.0; }); }
-  void increment() { unary([](double& a) { a += 1.0; }); }
-  void decrement() { unary([](double& a) { a -= 1.0; }); }
-  void sin() { unary([](double& a) { a = std::sin(a); }); }
-  void cos() { unary([](double& a) { a = std::cos(a); }); }
-  void tan() { unary([](double& a) { a = std::tan(a); }); }
-  void square() { unary([](double& a) { a *= a; }); }
-  void root() { unary([](double& a) { a = std::sqrt(a); }); }
-
-  // binary operators
-  void add() { binary([](double& a, const double& b) { a += b; }); }
-  void subtract() { binary([](double& a, const double& b) { a -= b; }); }
-  void multiply() { binary([](double& a, const double& b) { a *= b; }); }
-  void divide() { binary([](double& a, const double& b) { a /= b; }); }
-}
-
-// to generate random expressions
-std::mt19937 rng(14);
-std::uniform_int_distribution<int> uniform;
-
-// random expression generation pools
-std::array pool_0 = {'1', 'a', 'x', 'P'};
-std::array pool_1 = {'\\', '~', '>', '<', 'S', 'C', '2', 'R'};
-std::array pool_2 = {'+', '-', '/', '*'};
-
-// returns a random member of an array
-template<typename T>
-static char rand_draw(const T& arr)
-{
-  return arr[uniform(rng) % arr.size()];
-}
-
-std::string gen_expr(int len)
-{
-  std::string result;
-
-  int stack_size = 0;
-  for (int i = 0; i < len; ++i) {
-    int roof = stack_size>=2 ? 3 : stack_size+1;
-    int choice = uniform(rng) % roof;
-
-    if (i == len-1)
+  // Available operator implementations,
+  // and currently should be hard-coded.
+  namespace operators {
+    template<typename F>
+    void ApplyUnary(const F& f)
     {
-      if (stack_size == 1)
-        choice = 1;
-      else
-        choice = 2;
+      f(stack.back());
     }
 
-    switch (choice) {
-      case 0:
-        result += rand_draw(pool_0);
-        stack_size++;
-        break;
-      case 1:
-        result += rand_draw(pool_1);
-        break;
-      case 2:
-        result += rand_draw(pool_2);
-        stack_size--;
-        break;
+    template<typename F>
+    void ApplyBinary(const F& f)
+    {
+      double back = stack.back();
+      stack.pop_back();
+      f(stack.back(), back);
     }
+
+    // nullary operators
+    void a() { stack.push_back(params[0]); } // push param to stack
+    void b() { stack.push_back(params[1]); } // ...
+    void c() { stack.push_back(params[2]); } // ...
+    void x() { stack.push_back(vars[0]); }   // push var to stack
+    void y() { stack.push_back(vars[1]); }   // ...
+    void z() { stack.push_back(vars[2]); }   // ...
+    void Zero() { stack.push_back(0.0); }    // push the number 0
+    void One() { stack.push_back(1.0); }     // push the number 1
+    void Pi() { stack.push_back(symb::pi); } // push the number pi
+
+    // unary operators
+    void Invert() { ApplyUnary([](double& v) { v = 1.0 / v; }); }
+    void InvertSign() { ApplyUnary([](double& v) { v *= -1.0; }); }
+    void Increment() { ApplyUnary([](double& v) { v += 1.0; }); }
+    void Decrement() { ApplyUnary([](double& v) { v -= 1.0; }); }
+    void Sin() { ApplyUnary([](double& v) { v = std::sin(v); }); }
+    void Cos() { ApplyUnary([](double& v) { v = std::cos(v); }); }
+    void Tan() { ApplyUnary([](double& v) { v = std::tan(v); }); }
+    void Square() { ApplyUnary([](double& v) { v *= v; }); }
+    void Root() { ApplyUnary([](double& v) { v = std::sqrt(v); }); }
+    void Log() { ApplyUnary([](double& v) { v = std::log(v); }); }
+    void Half() { ApplyUnary([](double& v) { v /= 2.0; }); }
+
+    // binary operators
+    void Add() { ApplyBinary([](double& a, const double& b) { a += b; }); }
+    void Subtract() { ApplyBinary([](double& a, const double& b) { a -= b; }); }
+    void Multiply() { ApplyBinary([](double& a, const double& b) { a *= b; }); }
+    void Divide() { ApplyBinary([](double& a, const double& b) { a /= b; }); }
   }
 
-  while (stack_size > 1) {
-    result += rand_draw(pool_2);
-    stack_size--;
+  // to generate random expressions
+  std::mt19937 rng(14);
+  std::uniform_int_distribution<int> uniform;
+
+  // random expression generation pools
+  std::array pool_nullary = {'1', 'x', 'P'};
+  std::array pool_unary = {'\\', '~', '>', '<', 'C', 'S', '2', 'R', 'L', 'H'};
+  std::array pool_binary = {'+', '-', '/', '*'};
+
+  // returns a random member of an array
+  template<typename T>
+  static char RandDraw(const T& arr)
+  {
+    return arr[uniform(rng) % arr.size()];
   }
 
-  return result;
-}
+  std::string GenExpr(int len)
+  {
+    std::string result;
 
-// dictionary from symbol of operator to the corresponding function address.
-// For example, '+' maps to &add.
-std::map<char, FuncPtr> op_dict = []() {
-  std::map<char, FuncPtr> ret;
-  ret['a'] = ops::a;
-  ret['b'] = ops::b;
-  ret['c'] = ops::c;
-  ret['x'] = ops::x;
-  ret['y'] = ops::y;
-  ret['z'] = ops::z;
-  ret['0'] = ops::zero;
-  ret['1'] = ops::one;
-  ret['P'] = ops::pi;
+    int stack_size = 0;
+    for (int i = 0; i < len; ++i) {
+      int roof = stack_size>=2 ? 3 : stack_size+1;
+      int choice = uniform(rng) % roof;
 
-  ret['\\'] = ops::invert; // x -> 1/x
-  ret['~'] = ops::invert_sign; // x -> -x
-  ret['>'] = ops::increment; // x -> x+1
-  ret['<'] = ops::decrement; // ...etc.
-  ret['S'] = ops::sin;
-  ret['C'] = ops::cos;
-  ret['T'] = ops::tan;
-  ret['2'] = ops::square;
-  ret['R'] = ops::root;
+      if (i == len-1)
+      {
+        if (stack_size == 1)
+          choice = 1;
+        else
+          choice = 2;
+      }
 
-  ret['+'] = ops::add;
-  ret['-'] = ops::subtract;
-  ret['*'] = ops::multiply;
-  ret['/'] = ops::divide;
+      switch (choice) {
+        case 0:
+          result += RandDraw(pool_nullary);
+          stack_size++;
+          break;
+        case 1:
+          result += RandDraw(pool_unary);
+          break;
+        case 2:
+          result += RandDraw(pool_binary);
+          stack_size--;
+          break;
+      }
+    }
 
-  return ret;
-}();
+    while (stack_size > 1) {
+      result += RandDraw(pool_binary);
+      stack_size--;
+    }
 
-// compile an expression. I.e., convert a vector of operation symbols
-// into a vector of the corresponding function addresses
-std::vector<FuncPtr> compile(const std::string& expr)
-{
-  std::vector<FuncPtr> ret;
-
-  for (char c : expr) {
-    ret.push_back(op_dict[c]);
+    return result;
   }
 
-  return ret;
-}
+  std::map<char, FuncPtr> operator_dict = []() {
+    std::map<char, FuncPtr> ret;
+    ret['a'] = operators::a;
+    ret['b'] = operators::b;
+    ret['c'] = operators::c;
+    ret['x'] = operators::x;
+    ret['y'] = operators::y;
+    ret['z'] = operators::z;
+    ret['0'] = operators::Zero;
+    ret['1'] = operators::One;
+    ret['P'] = operators::Pi;
 
+    ret['\\'] = operators::Invert; // x -> 1/x
+    ret['~'] = operators::InvertSign; // x -> -x
+    ret['>'] = operators::Increment; // x -> x+1
+    ret['<'] = operators::Decrement; // ...etc.
+    ret['S'] = operators::Sin;
+    ret['C'] = operators::Cos;
+    ret['T'] = operators::Tan;
+    ret['2'] = operators::Square;
+    ret['R'] = operators::Root;
+    ret['L'] = operators::Log;
+    ret['H'] = operators::Half;
 
-// run a compiled expression and return the resulting number
-double run(const std::vector<FuncPtr>& compiled_expr)
-{
-  for (auto func : compiled_expr) {
-    func();
+    ret['+'] = operators::Add;
+    ret['-'] = operators::Subtract;
+    ret['*'] = operators::Multiply;
+    ret['/'] = operators::Divide;
+
+    return ret;
+  }();
+
+  std::vector<FuncPtr> Compile(const std::string& expr)
+  {
+    std::vector<FuncPtr> ret;
+
+    for (char c : expr) {
+      ret.push_back(operator_dict[c]);
+    }
+
+    return ret;
   }
 
-  double ret = stack.back();
-  stack.pop_back();
-  return ret;
-}
+  double Run(const std::vector<FuncPtr>& compiled_expr)
+  {
+    for (auto func : compiled_expr) {
+      func();
+    }
 
-double run(const std::vector<FuncPtr>& compiled_expr, double x)
-{
-  vars[0] = x;
-  return run(compiled_expr);
-}
-
-
-int main(int argc, char *argv[])
-{
-  if (argc != 2) {
-    printf("Usage: %s expression\n", argv[0]);
-    return 1;
+    double ret = stack.back();
+    stack.pop_back();
+    return ret;
   }
 
-  auto expr = compile(argv[1]);
-
-  double integral = 0.0;
-  double dx = 1e-8;
-  for (double x = 0.0; x <= pi/2.0; x += dx) {
-    integral += sin(x) + cos(x) + tan(x);
-    // integral += run(expr, x);
+  double Run(const std::vector<FuncPtr>& compiled_expr, double x)
+  {
+    vars[0] = x;
+    return Run(compiled_expr);
   }
-  integral *= dx;
 
-  printf("Integral from x=0.0 to x=pi: %f\n", integral);
+  double Run(const std::vector<FuncPtr>& compiled_expr, double x, double y)
+  {
+    vars[0] = x;
+    vars[1] = y;
+    return Run(compiled_expr);
+  }
+
+  double Run(const std::vector<FuncPtr>& compiled_expr, double x, double y,
+             double z)
+  {
+    vars[0] = x;
+    vars[1] = y;
+    vars[2] = z;
+    return Run(compiled_expr);
+  }
 }
