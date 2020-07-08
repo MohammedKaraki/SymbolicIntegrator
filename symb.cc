@@ -18,7 +18,7 @@ namespace symb {
   std::array<double, max_num_vars> vars;
 
   // the stack stores the operands.
-  constexpr int stack_capacity = 50; 
+  constexpr int stack_capacity = 50;
   boost::circular_buffer<double> stack(stack_capacity);
 
   // Available operator implementations,
@@ -156,6 +156,13 @@ namespace symb {
 
     return ret;
   }();
+
+  void SetParam(double a, double b, double c)
+  {
+    params[0] = a;
+    params[1] = b;
+    params[2] = c;
+  }
 
   std::vector<FuncPtr> Compile(const std::string& expr)
   {

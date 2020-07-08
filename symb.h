@@ -13,6 +13,8 @@ namespace symb {
   // into a vector of the corresponding function addresses.
   std::vector<FuncPtr> Compile(const std::string& expr);
 
+  void SetParams(double a, double b, double c);
+
   // Run a compiled expression and return the resulting number.
   double Run(const std::vector<FuncPtr>& compiled_expr);
   double Run(const std::vector<FuncPtr>& compiled_expr, double x);
